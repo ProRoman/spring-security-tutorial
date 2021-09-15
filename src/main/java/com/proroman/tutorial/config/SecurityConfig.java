@@ -1,28 +1,37 @@
 package com.proroman.tutorial.config;
 
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import com.proroman.tutorial.auth.JwtTokenAuthenticationFilter;
+import com.proroman.tutorial.auth.JwtTokenAuthenticationProvider;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @EnableWebSecurity
+@ComponentScan(basePackages = "com.proroman.tutorial.auth")
+@EnableGlobalMethodSecurity(jsr250Enabled = true)
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        http.authorizeRequests()
-                .antMatchers("/", "/index", "/public").permitAll()
-                .anyRequest().authenticated()
-                .and()
-                .httpBasic();
+    private final JwtTokenAuthenticationFilter authenticationFilter;
+    private final JwtTokenAuthenticationProvider authenticationProvider;
+
+    public SecurityConfig(JwtTokenAuthenticationFilter authenticationFilter,
+                          JwtTokenAuthenticationProvider authenticationProvider) {
+        this.authenticationFilter = authenticationFilter;
+        this.authenticationProvider = authenticationProvider;
     }
 
     @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.inMemoryAuthentication()
-                .withUser("user").password("{noop}user").roles("USER")
-                .and()
-                .withUser("admin").password("{noop}admin").roles("ADMIN");
+    protected void configure(HttpSecurity http) throws Exception {
+        http.csrf().disable()
+                .formLogin().disable()
+                .httpBasic().disable()
+                .addFilterAt(authenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .authenticationProvider(authenticationProvider)
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
     }
 
 }
